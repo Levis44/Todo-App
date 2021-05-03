@@ -1,38 +1,80 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-import List from "./List";
+import List from "./components/List";
+import TodoForm from "./components/TodoForm";
+
+import Item from "./components/Item";
 
 import "./Todo.css";
+import Modal from "./components/Modal";
+
+const SAVED_ITEMS = "savedItems";
 
 function Todo() {
-  const [text, setText] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
   const [items, setItems] = useState([]);
 
-  function handleChange(event) {
-    let t = event.target.value;
-    setText(t);
+  useEffect(() => {
+    let savedItems = JSON.parse(localStorage.getItem(SAVED_ITEMS));
+
+    if (savedItems) {
+      setItems(savedItems);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(SAVED_ITEMS, JSON.stringify(items));
+  }, [items]);
+
+  function onItemDeleted(item) {
+    let filteredItems = items.filter((it) => it.id !== item.id);
+
+    setItems(filteredItems);
   }
 
-  function addItem(event) {
-    event.preventDefault();
+  function onDone(item) {
+    let updatedItems = items.map((it) => {
+      if (it.id === item.id) {
+        it.done = !it.done;
+      }
+      return it;
+    });
 
-    if (text) {
-      setItems([...items, text]);
-      setText("");
-    }
+    setItems(updatedItems);
+  }
+
+  function onAddItem(text) {
+    let it = new Item(text);
+
+    setItems([...items, it]);
+    onHideModal();
+  }
+
+  function onHideModal() {
+    setShowModal(false);
   }
 
   return (
     <div className="container">
-      <h1>Todo</h1>
+      <header className="header">
+        <h1>Todo</h1>
 
-      <form>
-        <input onChange={handleChange} type="text" value={text}></input>
-        <button onClick={addItem}>Add</button>
-      </form>
+        <button
+          onClick={() => {
+            setShowModal(true);
+          }}
+          className="addButton"
+        >
+          +
+        </button>
+      </header>
 
-      <List items={items}></List>
+      <List onDone={onDone} onItemDeleted={onItemDeleted} items={items}></List>
+
+      <Modal show={showModal} onHideModal={onHideModal}>
+        <TodoForm onAddItem={onAddItem}></TodoForm>
+      </Modal>
     </div>
   );
 }
